@@ -1,11 +1,6 @@
-<img width="1248" height="618" alt="imgs_binning_logo" src="https://github.com/user-attachments/assets/6038bea4-df60-40c2-8958-f6a71951c8a7" />
+<img width="848" height="618" alt="imgs_binning_logo" src="https://github.com/user-attachments/assets/6038bea4-df60-40c2-8958-f6a71951c8a7" />
 
 # Jupyter_WoE_Binner(JWB) — Interactive WOE Binning Tool for Jupyter 
-
-<p align="center">
-  <b>— Binning it! —</b><br>
-  <sub>Interactive Weight of Evidence Binning Tool for Credit Risk Modeling</sub>
-</p>
 
 ---
 
