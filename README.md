@@ -1,4 +1,4 @@
-<img width="1648" height="918" alt="imgs_binning_logo" src="https://github.com/user-attachments/assets/6038bea4-df60-40c2-8958-f6a71951c8a7" />
+<img width="1248" height="618" alt="imgs_binning_logo" src="https://github.com/user-attachments/assets/6038bea4-df60-40c2-8958-f6a71951c8a7" />
 
 # BINNING!BINNING!BINNING!: jupyter_woe_binner(JWB)
 # — Interactive WOE Binning Tool for Jupyter 
@@ -7,6 +7,7 @@
   <b>— Binning it! —</b><br>
   <sub>Interactive Weight of Evidence Binning Tool for Credit Risk Modeling</sub>
 </p>
+
 ---
 
 ## 📖 项目介绍
@@ -40,7 +41,7 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/EddIeZhao/jupyter_woe_binner.git
+git clone https://github.com/DataElf/BINNING-BINNING-BINNING-jupyter_woe_binner-JWB-.git
 cd jupyter_woe_binner
 
 # 安装依赖
@@ -71,15 +72,30 @@ pip install -e .
 ```python
 import pandas as pd
 import numpy as np
-from jupyter_woe_binner import BinningWidget
+from jupyter_woe_binner import BinningWidget, BinningWidgetList
 
 # 准备数据
 np.random.seed(42)
 n = 2000
 amount = np.random.gamma(2, 50000, n)
-prob = 0.3 - 0.2 * (amount - amount.min()) / (amount.max() - amount.min())
+credit_usage = np.random.uniform(0, 1, n)
+income = np.random.lognormal(10, 1, n)
+age = np.random.randint(20, 70, n)
+
+prob = (0.3
+        - 0.15 * (amount - amount.min()) / (amount.max() - amount.min())
+        + 0.1 * credit_usage
+        - 0.1 * (income - income.min()) / (income.max() - income.min()))
+prob = np.clip(prob, 0.05, 0.95)
 target = (np.random.rand(n) < prob).astype(int)
-df = pd.DataFrame({'adj_finance_amt': amount, 'target': target})
+
+df = pd.DataFrame({
+    'adj_finance_amt': amount,
+    'credit_6m_usage': credit_usage,
+    'annual_income': income,
+    'age': age,
+    'target': target
+})
 
 # 启动交互分箱工具
 widget = BinningWidget(df, var_name='adj_finance_amt',
@@ -95,8 +111,8 @@ widget.display()
 | 操作 | 方式 |
 |------|------|
 | 选择箱子 | 在 Select 多选框中按住 Ctrl 点击，或点击图表柱子 |
-| 合并两个相邻箱 | 选中两个箱 → 点击 **⬌ Merge** 或按 `Ctrl+Shift+W` |
-| 分裂一个箱 | 选中一个箱 → 点击 **⬍ Split** 或按 `Ctrl+Shift+Q` |
+| 合并两个相邻箱 | 选中两个箱 → 点击 **⬌ Merge** 或按 `Ctrl+⇧W` |
+| 分裂一个箱 | 选中一个箱 → 点击 **⬍ Split** 或按 `Ctrl+⇧Q` |
 | 确认分箱 | 点击 **✓ Confirm** |
 | 重置 | 点击 **↺ Reset** |
 
@@ -107,11 +123,42 @@ widget.bins
 # [-inf, 50000.0, 100000.0, 150000.0, inf]
 ```
 
+### 单变量分箱（含特殊值）
+
+在信用风控中，数据常包含特殊值（如 -99999 代表缺失，-99998 代表未知），需要单独分箱计算 WOE：
+
+```python
+# 模拟特殊值
+df_spc = df.copy()
+df_spc.loc[np.random.choice(n, 80, replace=False), 'adj_finance_amt'] = -99999
+df_spc.loc[np.random.choice(n, 50, replace=False), 'adj_finance_amt'] = -99998
+
+widget_spc = BinningWidget(df_spc, var_name='adj_finance_amt',
+                           target_name='target',
+                           event_flag=1,
+                           non_event_flag=0,
+                           max_bins=6,
+                           spc_values=[-99999, -99998])
+widget_spc.display()
+```
+
+**特殊值特性：**
+
+| 特性 | 说明 |
+|------|------|
+| 图表展示 | 特殊值箱用紫色显示，位于 Y 轴最上方 |
+| 表格展示 | 特殊值行用浅紫色背景高亮 |
+| 合并/分裂 | 特殊值箱不可合并/拆分 |
+| IV 计算 | 总 IV = 正常箱 IV + 特殊值箱 IV |
+
+```python
+widget_spc.bins
+# [-inf, 50000.0, 100000.0, inf]
+```
+
 ### 多变量批量分箱
 
 ```python
-from jupyter_woe_binner import BinningWidgetList
-
 widget_list = BinningWidgetList(df,
     var_name=['adj_finance_amt', 'credit_6m_usage', 'annual_income', 'age'],
     target_name='target',
@@ -141,6 +188,35 @@ widget_list.bins
 # }
 ```
 
+### 多变量批量分箱（含特殊值）
+
+```python
+df_spc2 = df.copy()
+for col in ['adj_finance_amt', 'credit_6m_usage', 'annual_income', 'age']:
+    df_spc2.loc[np.random.choice(n, 60, replace=False), col] = -99999
+    df_spc2.loc[np.random.choice(n, 40, replace=False), col] = -99998
+
+widget_list_spc = BinningWidgetList(df_spc2,
+    var_name=['adj_finance_amt', 'credit_6m_usage', 'annual_income', 'age'],
+    target_name='target',
+    event_flag=1,
+    non_event_flag=0,
+    max_bins=6,
+    spc_values=[-99999, -99998])
+widget_list_spc.display()
+```
+
+```python
+widget_list_spc.bins
+# {
+#   'adj_finance_amt': [-inf, 50000.0, 100000.0, inf],
+#   'credit_6m_usage': [-inf, 0.3, 0.7, inf],
+#   'annual_income': [-inf, 20000.0, 50000.0, inf],
+#   'age': [-inf, 30, 50, inf],
+#   '_spc_values': [-99999, -99998]
+# }
+```
+
 ---
 
 ## 🔧 技术说明
@@ -166,12 +242,15 @@ widget_list.bins
 
 5. **多变量导航**：`BinningWidgetList` 为每个变量维护独立的 `BinningWidget` 实例，通过替换 `_content.children` 实现变量切换，各变量的分箱状态互不干扰
 
+6. **特殊值分箱**：`spc_values` 参数支持将指定值（如 -99999、-99998）从正常数据中分离，单独计算 WOE/IV，在图表中用紫色标识，表格中用浅紫色背景高亮，且不可合并/拆分
+
 ### 图表设计
 
-- **Distribution 图**：水平堆叠柱状图，Good（蓝）/Bad（红），柱内显示占比百分比
+- **Distribution 图**：水平堆叠柱状图，Good（蓝）/Bad（红），柱内显示占比百分比；特殊值箱用紫色标识
 - **Bad Rate 图**：水平折线图，标记点 + 数值标签
 - **WOE 图**：水平柱状图，正值蓝色向右、负值红色向左，0 轴居中虚线标注；相邻箱 WOE 差异 < 0.1 时显示虚线 + "merge?" 提示
 - **配色**：论文级低色度配色（Steel Blue / Terracotta / Dark Navy），专业且不刺眼
+- **Y 轴顺序**：特殊值箱 → -inf 区间 → ... → inf 区间，固定从上到下
 
 ---
 
