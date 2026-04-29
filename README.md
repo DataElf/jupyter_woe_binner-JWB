@@ -179,9 +179,3 @@ widget_list.bins
 ## 📬 联系方式
 **EddIe Z**
 ---
-
-## 📬 联系方式
-
-**EddIe Zhao**
-
-- GitHub: [https://github.com/EddIeZhao](https://github.com/EddIeZhao)
