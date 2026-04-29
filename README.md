@@ -1,7 +1,6 @@
 <img width="1248" height="618" alt="imgs_binning_logo" src="https://github.com/user-attachments/assets/6038bea4-df60-40c2-8958-f6a71951c8a7" />
 
-# BINNING!BINNING!BINNING!: jupyter_woe_binner(JWB)
-# — Interactive WOE Binning Tool for Jupyter 
+# Jupyter_WoE_Binner(JWB) — Interactive WOE Binning Tool for Jupyter 
 
 <p align="center">
   <b>— Binning it! —</b><br>
@@ -66,6 +65,9 @@ pip install -e .
 ---
 
 ## 📝 使用示例
+
+<img width="1116" height="584" alt="ae18e101-1c6b-421b-a888-41a62f3c99d7" src="https://github.com/user-attachments/assets/aaaa4e13-1e5f-4ea3-94b2-ebb6949b588a" />
+
 
 ### 单变量分箱
 
