@@ -252,5 +252,5 @@ widget_list_spc.bins
 ---
 
 ## 📬 联系方式
-Group：Eddie@Antixxxrisk_tookits_company 
+Group：AntixxxRisk_Tookits_Company 
 ---
