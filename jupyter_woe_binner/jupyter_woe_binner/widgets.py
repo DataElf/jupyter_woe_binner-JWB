@@ -53,6 +53,7 @@ _CSS = """
 }
 .bw-merge  { background: #8E7B6D !important; color: #fff !important; }
 .bw-split  { background: #6B9DBD !important; color: #fff !important; }
+.bw-boom   { background: #C0392B !important; color: #fff !important; }
 .bw-confirm{ background: #6DAE7B !important; color: #fff !important; }
 .bw-reset  { background: #A8A8A8 !important; color: #fff !important; }
 .bw-nav    { background: #7A8B99 !important; color: #fff !important; }
@@ -72,7 +73,8 @@ class BinningWidget:
 
     def __init__(self, df, var_name, target_name,
                  event_flag=1, non_event_flag=0,
-                 initial_bins=None, max_bins=10, spc_values=None, show_logo=True):
+                 initial_bins=None, max_bins=10, spc_values=None,
+                 show_logo=True, min_split_pct=0.0):
         self.df = df
         self.var_name = var_name
         self.target_name = target_name
@@ -82,6 +84,7 @@ class BinningWidget:
         self._initial_bins_param = initial_bins
         self._show_logo = show_logo
         self.spc_values = spc_values if spc_values else []
+        self.min_split_pct = min_split_pct
 
         self.series = df[var_name].copy()
         self.target = df[target_name].copy()
@@ -135,13 +138,6 @@ class BinningWidget:
         self.table_output = Output()
         self.msg_output = Output()
 
-        self.logo = HTML(
-            '<div style="text-align:center;padding:8px 0 4px 0;">'
-            '<span style="font-family:-apple-system,BlinkMacSystemFont,\'SF Pro Display\',sans-serif;'
-            'font-size:22px;font-weight:300;color:#2C3E50;letter-spacing:3px;">'
-            '— Binning it! —</span></div>'
-        )
-
         self.bin_selector = widgets.SelectMultiple(
             options=self._bin_options(),
             description='Select:',
@@ -154,6 +150,8 @@ class BinningWidget:
         self.merge_btn.add_class('bw-btn'); self.merge_btn.add_class('bw-merge')
         self.split_btn = Button(description='⬍ Split\n(Ctrl+⇧Q)', layout=Layout(min_width='108px', height='44px'))
         self.split_btn.add_class('bw-btn'); self.split_btn.add_class('bw-split')
+        self.boom_btn = Button(description='💥 BOOM!\n(Ctrl+⇧B)', layout=Layout(min_width='108px', height='44px'))
+        self.boom_btn.add_class('bw-btn'); self.boom_btn.add_class('bw-boom')
         self.confirm_btn = Button(description='✓ Confirm', layout=Layout(min_width='108px', height='44px'))
         self.confirm_btn.add_class('bw-btn'); self.confirm_btn.add_class('bw-confirm')
         self.reset_btn = Button(description='↺ Reset', layout=Layout(min_width='108px', height='44px'))
@@ -165,10 +163,12 @@ class BinningWidget:
         self._setup_callbacks()
         self._setup_click_handler()
 
-        divider = HTML('<div class="bw-divider"></div>')
+        divider1 = HTML('<div class="bw-divider"></div>')
+        divider2 = HTML('<div class="bw-divider"></div>')
         btn_row = HBox(
-            [self.merge_btn, self.split_btn, divider, self.confirm_btn, self.reset_btn],
-            layout=Layout(justify_content='center', align_items='center', gap='8px', padding='6px 0')
+            [self.merge_btn, self.split_btn, self.boom_btn,
+             divider1, self.confirm_btn, divider2, self.reset_btn],
+            layout=Layout(justify_content='center', align_items='center', gap='6px', padding='6px 0')
         )
         info_row = HBox([self.info_label, self.selected_label],
                         layout=Layout(justify_content='space-between', padding='2px 12px'))
@@ -227,7 +227,6 @@ class BinningWidget:
             horizontal_spacing=0.04,
         )
 
-        # --- Distribution (horizontal stacked) ---
         good_pcts = (stats['High'] / (stats['High'] + stats['Low'])).fillna(0)
         bad_pcts = (stats['Low'] / (stats['High'] + stats['Low'])).fillna(0)
 
@@ -250,7 +249,6 @@ class BinningWidget:
             hovertemplate='Bad: %{x}<br>Pct: %{text}<extra></extra>',
         ), row=1, col=1)
 
-        # --- Bad Rate (horizontal line) ---
         rate_vals = stats['Low Rate'].tolist()
         rate_max = max(rate_vals) * 1.35 if rate_vals else 1.0
         fig.add_trace(go.Scatter(
@@ -263,7 +261,6 @@ class BinningWidget:
             hovertemplate='Bad Rate: %{x:.1%}<extra></extra>',
         ), row=1, col=2)
 
-        # --- WOE (horizontal, positive/negative) ---
         woe = stats['WoE'].tolist()
         woe_colors = [_C_CLR['spc'] if i < self._spc_count else
                       (_C_CLR['woe_pos'] if w >= 0 else _C_CLR['woe_neg'])
@@ -277,12 +274,10 @@ class BinningWidget:
             hovertemplate='WOE: %{x:.3f}<extra></extra>',
         ), row=1, col=3)
 
-        # WOE zero line
         fig.add_shape(type='line', x0=0, x1=0, y0=-0.5, y1=n - 0.5,
                       line=dict(color=_C_CLR['zero_line'], width=1, dash='dot'),
                       row=1, col=3)
 
-        # WOE merge suggestion dashed lines (only for normal bins)
         for i in range(self._spc_count, n - 1):
             if abs(woe[i] - woe[i + 1]) < _WOE_MERGE_THRESHOLD:
                 x_min = min(woe[i], woe[i + 1])
@@ -297,7 +292,6 @@ class BinningWidget:
                     font=dict(size=8, color=_C_CLR['merge_dash']),
                     row=1, col=3)
 
-        # Layout
         fig.update_layout(
             barmode='stack',
             showlegend=False,
@@ -347,28 +341,44 @@ class BinningWidget:
             self.selected.append(idx)
         self._update_selection()
 
-    # --------------------------------------------------------- Merge / Split
+    # --------------------------------------------------------- Merge (2+ consecutive)
     def _merge_selected(self):
-        if len(self.selected) != 2:
-            self._show_message('⚠️ 请选择两个箱子进行合并')
+        if len(self.selected) < 2:
+            self._show_message('⚠️ 请选择两个或以上箱子进行合并')
             return
-        idx1, idx2 = sorted(self.selected)
-        if any(i < self._spc_count for i in [idx1, idx2]):
+
+        sorted_sel = sorted(self.selected)
+
+        if any(i < self._spc_count for i in sorted_sel):
             self._show_message('⚠️ 特殊值箱不可合并')
             return
-        if abs(idx1 - idx2) != 1:
-            self._show_message('⚠️ 选中的两个箱子必须相邻')
+
+        for i in range(len(sorted_sel) - 1):
+            if sorted_sel[i + 1] - sorted_sel[i] != 1:
+                self._show_message('⚠️ 选中的箱子必须连续，请重新选择')
+                return
+
+        norm_first = sorted_sel[0] - self._spc_count
+        norm_last = sorted_sel[-1] - self._spc_count
+
+        boundaries_to_remove = list(range(norm_first + 1, norm_last + 1))
+        if not boundaries_to_remove:
+            self._show_message('⚠️ 无需合并')
             return
-        norm_idx1 = idx1 - self._spc_count
-        boundary = norm_idx1 + 1
-        if boundary >= len(self.bins) - 1:
+
+        remaining = len(self.bins) - 1 - len(boundaries_to_remove)
+        if remaining < 2:
             self._show_message('⚠️ 至少保留两个箱子')
             return
-        del self.bins[boundary]
+
+        for b in sorted(boundaries_to_remove, reverse=True):
+            del self.bins[b]
+
         self.selected = []
         self._recalculate()
-        self._show_message('✅ 合并成功')
+        self._show_message(f'✅ 合并成功，合并了 {len(boundaries_to_remove)} 个边界')
 
+    # --------------------------------------------------------- Split (IV-optimal with min_split_pct)
     def _split_selected(self):
         if len(self.selected) != 1:
             self._show_message('⚠️ 请选择一个箱子进行拆分')
@@ -399,11 +409,22 @@ class BinningWidget:
             self._show_message('⚠️ 数据不足，无法拆分')
             return
 
+        total_n = len(self.normal_series)
+        min_count = max(1, int(np.ceil(total_n * self.min_split_pct)))
+
         for sv in sorted(unique_vals[1:]):
             new_bins = self.bins[:norm_idx + 1] + [sv] + self.bins[norm_idx + 1:]
             try:
-                _, tiv = calculate_woe_iv(self.normal_series, self.normal_target, new_bins,
-                                          self.event_flag, self.non_event_flag)
+                temp_stats, tiv = calculate_woe_iv(
+                    self.normal_series, self.normal_target, new_bins,
+                    self.event_flag, self.non_event_flag)
+
+                if self.min_split_pct > 0:
+                    left_count = (data_in_bin <= sv).sum()
+                    right_count = (data_in_bin > sv).sum()
+                    if left_count < min_count or right_count < min_count:
+                        continue
+
                 if self.spc_values:
                     spc_df = calculate_spc_woe_iv(
                         self.series, self.target, self.spc_values,
@@ -415,13 +436,98 @@ class BinningWidget:
                 continue
 
         if best_split is None:
-            self._show_message(f'⚠️ 无法分裂（IV {best_iv:.4f} ≤ 当前 {current_iv:.4f}）')
+            if self.min_split_pct > 0:
+                self._show_message(f'⚠️ 无法分裂（IV 未提升或分裂后存在箱占比 < {self.min_split_pct:.1%}）')
+            else:
+                self._show_message(f'⚠️ 无法分裂（IV {best_iv:.4f} ≤ 当前 {current_iv:.4f}）')
             return
 
         self.bins.insert(norm_idx + 1, best_split)
         self.selected = []
         self._recalculate()
         self._show_message(f'✅ 分裂成功，边界: {best_split:.2f}，IV: {best_iv:.4f}')
+
+    # --------------------------------------------------------- BOOM! Split
+    def _boom_split(self):
+        if len(self.selected) != 1:
+            self._show_message('💥 请选择一个箱子进行 BOOM! 分裂')
+            return
+        idx = self.selected[0]
+        if idx < self._spc_count:
+            self._show_message('⚠️ 特殊值箱不可拆分')
+            return
+        norm_idx = idx - self._spc_count
+        lower, upper = self.bins[norm_idx], self.bins[norm_idx + 1]
+
+        if np.isneginf(lower):
+            mask = self.normal_series <= upper
+        elif np.isposinf(upper):
+            mask = self.normal_series > lower
+        else:
+            mask = (self.normal_series > lower) & (self.normal_series <= upper)
+
+        data_in_bin = self.normal_series[mask]
+        if len(data_in_bin) == 0:
+            self._show_message('💥 该箱为空，无法分裂')
+            return
+
+        total_n = len(self.normal_series)
+        min_count = max(1, int(np.ceil(total_n * 0.01)))
+        unique_vals = np.sort(np.unique(data_in_bin))
+
+        if len(unique_vals) < 2:
+            self._show_message('💥 数据不足，无法分裂')
+            return
+
+        sorted_pcts = np.arange(1, 100) / 100.0
+        percentiles = np.percentile(data_in_bin, sorted_pcts * 100)
+        candidate_splits = sorted(set(np.round(percentiles, 8)))
+
+        new_boundaries = []
+        for sv in candidate_splits:
+            if sv <= self.bins[norm_idx] or sv >= self.bins[norm_idx + 1]:
+                continue
+            if np.isneginf(lower) and sv <= lower:
+                continue
+            if np.isposinf(upper) and sv >= upper:
+                continue
+            new_boundaries.append(sv)
+
+        if not new_boundaries:
+            self._show_message('💥 无法找到有效分裂点')
+            return
+
+        test_bins = self.bins[:norm_idx + 1] + new_boundaries + self.bins[norm_idx + 1:]
+        try:
+            temp_stats, _ = calculate_woe_iv(
+                self.normal_series, self.normal_target, test_bins,
+                self.event_flag, self.non_event_flag)
+        except Exception:
+            self._show_message('💥 分裂计算失败')
+            return
+
+        valid_boundaries = []
+        for i, sv in enumerate(new_boundaries):
+            row_idx = i + 1
+            if row_idx < len(temp_stats):
+                bin_count = temp_stats.iloc[row_idx]['Total']
+                if bin_count >= min_count:
+                    valid_boundaries.append(sv)
+
+        first_bin_count = temp_stats.iloc[0]['Total'] if len(temp_stats) > 0 else 0
+        if first_bin_count < min_count:
+            if valid_boundaries:
+                valid_boundaries = valid_boundaries[1:]
+
+        if not valid_boundaries:
+            self._show_message('💥 分裂后所有箱占比均 < 1%，无法分裂')
+            return
+
+        final_bins = self.bins[:norm_idx + 1] + valid_boundaries + self.bins[norm_idx + 1:]
+        self.bins = final_bins
+        self.selected = []
+        self._recalculate()
+        self._show_message(f'💥 BOOM! 分裂成功，新增 {len(valid_boundaries)} 个边界，共 {len(self.bins) - 1} 个箱')
 
     # -------------------------------------------------------- Recalculate
     def _recalculate(self):
@@ -511,6 +617,7 @@ class BinningWidget:
     def _setup_callbacks(self):
         self.merge_btn.on_click(lambda b: self._merge_selected())
         self.split_btn.on_click(lambda b: self._split_selected())
+        self.boom_btn.on_click(lambda b: self._boom_split())
         self.confirm_btn.on_click(lambda b: self._confirm_binning())
         self.reset_btn.on_click(lambda b: self._reset())
         self.bin_selector.observe(self._on_bin_select, names='value')
@@ -526,6 +633,8 @@ class BinningWidget:
                 self._merge_selected()
             elif key == 'q':
                 self._split_selected()
+            elif key == 'b':
+                self._boom_split()
 
     # -------------------------------------------------------- Actions
     def _confirm_binning(self):
@@ -558,7 +667,8 @@ class BinningWidget:
 class BinningWidgetList:
 
     def __init__(self, df, var_name, target_name,
-                 event_flag=1, non_event_flag=0, max_bins=10, spc_values=None):
+                 event_flag=1, non_event_flag=0, max_bins=10,
+                 spc_values=None, min_split_pct=0.0, initial_bin_dir=None):
         if isinstance(var_name, str):
             var_name = [var_name]
         self.df = df
@@ -568,16 +678,19 @@ class BinningWidgetList:
         self.non_event_flag = non_event_flag
         self.max_bins = max_bins
         self.spc_values = spc_values if spc_values else []
+        self.min_split_pct = min_split_pct
+        self.initial_bin_dir = initial_bin_dir if initial_bin_dir else {}
         self._current_idx = 0
         self._confirmed_bins = {}
 
         self._widgets = {}
         for vn in self.var_names:
+            ib = self.initial_bin_dir.get(vn, None)
             self._widgets[vn] = BinningWidget(
                 df, var_name=vn, target_name=target_name,
                 event_flag=event_flag, non_event_flag=non_event_flag,
-                max_bins=max_bins, spc_values=self.spc_values,
-                show_logo=False
+                initial_bins=ib, max_bins=max_bins, spc_values=self.spc_values,
+                show_logo=False, min_split_pct=min_split_pct
             )
 
         self._build_ui()
