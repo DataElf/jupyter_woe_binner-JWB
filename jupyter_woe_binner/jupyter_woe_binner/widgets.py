@@ -29,40 +29,66 @@ _WOE_MERGE_THRESHOLD = 0.1
 _CSS = """
 <style>
 .bw-btn {
-    border-radius: 10px !important;
+    border-radius: 6px !important;
     font-weight: 500 !important;
     letter-spacing: 0.2px !important;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif !important;
-    transition: all 0.15s ease !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06) !important;
-    border: none !important;
-    padding: 6px 16px !important;
-    min-width: 108px !important;
-    font-size: 12.5px !important;
-    line-height: 1.3 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+    transition: all 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    border: 1px solid #d0d5dd !important;
+    padding: 3px 8px !important;
+    min-width: 68px !important;
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
 .bw-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.06) !important;
-    filter: brightness(1.05);
+    transform: translateY(-0.5px);
+    filter: brightness(0.97) !important;
+    border-color: #b0b8c4 !important;
 }
 .bw-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.06) !important;
-    filter: brightness(0.97);
+    transform: translateY(0.5px);
+    filter: brightness(0.93) !important;
 }
-.bw-merge  { background: #8E7B6D !important; color: #fff !important; }
-.bw-split  { background: #6B9DBD !important; color: #fff !important; }
-.bw-boom   { background: #C0392B !important; color: #fff !important; }
-.bw-confirm{ background: #6DAE7B !important; color: #fff !important; }
-.bw-reset  { background: #A8A8A8 !important; color: #fff !important; }
-.bw-nav    { background: #7A8B99 !important; color: #fff !important; }
+
+.bw-merge, .bw-split, .bw-confirm, .bw-reset, .bw-nav {
+    background: #f0f2f5 !important;
+    color: #2c3e6b !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+}
+.bw-merge:hover, .bw-split:hover, .bw-confirm:hover, .bw-reset:hover, .bw-nav:hover {
+    background: #e8eaef !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06) !important;
+}
+
+.bw-boom {
+    background: linear-gradient(135deg, #B84233, #D4543E) !important;
+    color: rgba(255,255,255,0.95) !important;
+    border: none !important;
+    box-shadow: 0 1px 3px rgba(184,66,51,0.35), 0 1px 2px rgba(0,0,0,0.08) !important;
+}
+.bw-boom::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+    background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 100%) !important;
+    pointer-events: none !important;
+    border-radius: 6px !important;
+}
+.bw-boom:hover {
+    box-shadow: 0 3px 10px rgba(184,66,51,0.4), 0 1px 3px rgba(0,0,0,0.1) !important;
+    filter: brightness(1.08) saturate(1.1) !important;
+}
+.bw-boom:active {
+    filter: brightness(0.95) saturate(0.95) !important;
+}
 
 .bw-divider {
     width: 1px;
-    height: 32px;
-    background: #e0e0e0;
-    margin: 0 6px;
+    height: 24px;
+    background: linear-gradient(180deg, transparent, #c8cdd5, transparent);
+    margin: 0 3px;
     align-self: center;
 }
 </style>
@@ -146,15 +172,15 @@ class BinningWidget:
             style={'description_width': '56px'}
         )
 
-        self.merge_btn = Button(description='⬌ Merge\n(Ctrl+⇧W)', layout=Layout(min_width='108px', height='44px'))
+        self.merge_btn = Button(description='⬌ Merge\n(Ctrl+⇧W)', layout=Layout(min_width='68px', height='36px'))
         self.merge_btn.add_class('bw-btn'); self.merge_btn.add_class('bw-merge')
-        self.split_btn = Button(description='⬍ Split\n(Ctrl+⇧Q)', layout=Layout(min_width='108px', height='44px'))
+        self.split_btn = Button(description='⬍ Split\n(Ctrl+⇧Q)', layout=Layout(min_width='68px', height='36px'))
         self.split_btn.add_class('bw-btn'); self.split_btn.add_class('bw-split')
-        self.boom_btn = Button(description='💥 BOOM!\n(Ctrl+⇧B)', layout=Layout(min_width='108px', height='44px'))
+        self.boom_btn = Button(description='💥 BOOM!\n(Ctrl+⇧B)', layout=Layout(min_width='68px', height='36px'))
         self.boom_btn.add_class('bw-btn'); self.boom_btn.add_class('bw-boom')
-        self.confirm_btn = Button(description='✓ Confirm', layout=Layout(min_width='108px', height='44px'))
+        self.confirm_btn = Button(description='✓ Confirm', layout=Layout(min_width='68px', height='36px'))
         self.confirm_btn.add_class('bw-btn'); self.confirm_btn.add_class('bw-confirm')
-        self.reset_btn = Button(description='↺ Reset', layout=Layout(min_width='108px', height='44px'))
+        self.reset_btn = Button(description='↺ Reset', layout=Layout(min_width='68px', height='36px'))
         self.reset_btn.add_class('bw-btn'); self.reset_btn.add_class('bw-reset')
 
         self.info_label = HTML(self._iv_html())
@@ -284,12 +310,13 @@ class BinningWidget:
                 x_max = max(woe[i], woe[i + 1])
                 fig.add_shape(type='line',
                               x0=x_min, x1=x_max, y0=i + 0.5, y1=i + 0.5,
-                              line=dict(color=_C_CLR['merge_dash'], width=1.5, dash='dash'),
+                              line=dict(color='#E74C3C', width=2, dash='dash'),
                               row=1, col=3)
                 fig.add_annotation(
                     x=(x_min + x_max) / 2, y=i + 0.5,
-                    text='merge?', showarrow=False,
-                    font=dict(size=8, color=_C_CLR['merge_dash']),
+                    text='⚡ merge', showarrow=True, arrowhead=2, arrowsize=0.8,
+                    arrowcolor='#E74C3C', arrowwidth=1.5,
+                    font=dict(size=11, color='#E74C3C', family='-apple-system,sans-serif'),
                     row=1, col=3)
 
         fig.update_layout(
@@ -398,48 +425,79 @@ class BinningWidget:
             mask = (self.normal_series > lower) & (self.normal_series <= upper)
 
         data_in_bin = self.normal_series[mask]
+        target_in_bin = self.normal_target[mask]
         if len(data_in_bin) == 0:
             self._show_message('⚠️ 该箱为空，无法拆分')
             return
 
-        current_iv = self.total_iv
-        best_split, best_iv = None, current_iv
-        unique_vals = np.unique(data_in_bin)
-        if len(unique_vals) < 2:
-            self._show_message('⚠️ 数据不足，无法拆分')
-            return
-
         total_n = len(self.normal_series)
+        total_event = (self.normal_target == self.event_flag).sum()
+        total_nonevent = (self.normal_target == self.non_event_flag).sum()
         min_count = max(1, int(np.ceil(total_n * self.min_split_pct)))
 
-        for sv in sorted(unique_vals[1:]):
-            new_bins = self.bins[:norm_idx + 1] + [sv] + self.bins[norm_idx + 1:]
-            try:
-                temp_stats, tiv = calculate_woe_iv(
-                    self.normal_series, self.normal_target, new_bins,
-                    self.event_flag, self.non_event_flag)
+        sorted_data = np.sort(data_in_bin.values)
+        n_data = len(sorted_data)
 
-                if self.min_split_pct > 0:
-                    left_count = (data_in_bin <= sv).sum()
-                    right_count = (data_in_bin > sv).sum()
-                    if left_count < min_count or right_count < min_count:
-                        continue
+        pcts = np.arange(1, 100) / 100.0
+        candidate_splits = np.unique(np.percentile(sorted_data, pcts * 100))
 
-                if self.spc_values:
-                    spc_df = calculate_spc_woe_iv(
-                        self.series, self.target, self.spc_values,
-                        self.event_flag, self.non_event_flag)
-                    tiv += spc_df['IV'].sum()
-                if tiv > best_iv:
-                    best_iv, best_split = tiv, sv
-            except Exception:
+        other_iv = self.total_iv
+        if norm_idx < len(self.stats_df) - self._spc_count:
+            bin_iv = self.stats_df.iloc[idx]['IV']
+        else:
+            bin_iv = 0
+        other_iv -= bin_iv
+
+        if self.spc_values:
+            spc_df = calculate_spc_woe_iv(
+                self.series, self.target, self.spc_values,
+                self.event_flag, self.non_event_flag)
+            other_iv -= spc_df['IV'].sum()
+            other_iv += spc_df['IV'].sum()
+
+        best_split, best_iv = None, self.total_iv
+        min_val = 0.5
+
+        for sv in candidate_splits:
+            left_mask = data_in_bin <= sv
+            right_mask = data_in_bin > sv
+            left_count = left_mask.sum()
+            right_count = right_mask.sum()
+
+            if left_count < min_count or right_count < min_count:
                 continue
+
+            left_ev = (target_in_bin[left_mask] == self.event_flag).sum()
+            left_nev = (target_in_bin[left_mask] == self.non_event_flag).sum()
+            right_ev = (target_in_bin[right_mask] == self.event_flag).sum()
+            right_nev = (target_in_bin[right_mask] == self.non_event_flag).sum()
+
+            left_pct_ev = left_ev / total_event if total_event > 0 else 0
+            left_pct_nev = left_nev / total_nonevent if total_nonevent > 0 else 0
+            right_pct_ev = right_ev / total_event if total_event > 0 else 0
+            right_pct_nev = right_nev / total_nonevent if total_nonevent > 0 else 0
+
+            left_woe = np.log(
+                (left_pct_nev + min_val / total_nonevent) /
+                (left_pct_ev + min_val / total_event)
+            ) if total_event > 0 and total_nonevent > 0 else 0
+            right_woe = np.log(
+                (right_pct_nev + min_val / total_nonevent) /
+                (right_pct_ev + min_val / total_event)
+            ) if total_event > 0 and total_nonevent > 0 else 0
+
+            left_iv = (left_pct_nev - left_pct_ev) * left_woe
+            right_iv = (right_pct_nev - right_pct_ev) * right_woe
+            split_iv = other_iv - bin_iv + left_iv + right_iv
+
+            if split_iv > best_iv:
+                best_iv, best_split = split_iv, sv
 
         if best_split is None:
             if self.min_split_pct > 0:
                 self._show_message(f'⚠️ 无法分裂（IV 未提升或分裂后存在箱占比 < {self.min_split_pct:.1%}）')
             else:
-                self._show_message(f'⚠️ 无法分裂（IV {best_iv:.4f} ≤ 当前 {current_iv:.4f}）')
+                self._show_message(f'⚠️ 无法分裂（IV {best_iv:.4f} ≤ 当前 {self.total_iv:.4f}）')
             return
 
         self.bins.insert(norm_idx + 1, best_split)
@@ -698,11 +756,11 @@ class BinningWidgetList:
     def _build_ui(self):
         self.nav_label = HTML(self._nav_html())
 
-        self.last_btn = Button(description='◀ Last', layout=Layout(min_width='90px', height='36px'))
+        self.last_btn = Button(description='◀ Last', layout=Layout(min_width='60px', height='28px'))
         self.last_btn.add_class('bw-btn'); self.last_btn.add_class('bw-nav')
-        self.next_btn = Button(description='Next ▶', layout=Layout(min_width='90px', height='36px'))
+        self.next_btn = Button(description='Next ▶', layout=Layout(min_width='60px', height='28px'))
         self.next_btn.add_class('bw-btn'); self.next_btn.add_class('bw-nav')
-        self.confirm_list_btn = Button(description='✓ Confirm', layout=Layout(min_width='108px', height='36px'))
+        self.confirm_list_btn = Button(description='✓ Confirm', layout=Layout(min_width='68px', height='28px'))
         self.confirm_list_btn.add_class('bw-btn'); self.confirm_list_btn.add_class('bw-confirm')
 
         self.last_btn.on_click(lambda b: self._go_last())
