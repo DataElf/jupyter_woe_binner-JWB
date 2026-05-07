@@ -1,10 +1,13 @@
 <img width="848" height="618" alt="imgs_binning_logo" src="https://github.com/user-attachments/assets/6038bea4-df60-40c2-8958-f6a71951c8a7" />
 
-# Jupyter_WoE_Binner(JWB) — Interactive WOE Binning Tool for Jupyter
+# Jupyter_WoE_Binner-JWB
+# — AntiRisk Lab
+
+**Jupyter 交互式WOE分箱建模工具(JWB)**
 
 ---
 
-## 📖 项目介绍
+## 📖 项目背景
 
 在信用风控建模中，**WOE（Weight of Evidence）分箱** 是特征工程的核心步骤。通过将连续变量离散化为若干区间（箱），并计算每个区间的 WOE 值和 IV（Information Value），可以：
 
