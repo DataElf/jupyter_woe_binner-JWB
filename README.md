@@ -328,5 +328,5 @@ widget.display()
 ---
 
 ## 📬 联系方式
-Group：AntiRisk_Lab
+@AntiRisk_Lab
 ---
